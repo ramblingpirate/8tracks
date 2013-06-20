@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import subprocess, threading
+#from pydub import AudioSegment
 ''' 
 We need to contact 8tracks with the API key.
 First things first, let's set up our url and API variables.
@@ -70,28 +71,39 @@ def report_performance(play_request, play_token, mix_id):
     status = requests.get(base_url + 'sets/%s/report.xml?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API))
     print status
 
-def play_stream(playing):
+def play_stream(playing, blocking):
     '''
     Current implementation is to open mpg123 as subprocess to play stream.
     '''
     stream = subprocess.Popen(['mpg123', playing])
+    #song = AudioSegment.from_file(playing, 'http')
+    if blocking:
+        stream.wait()
     return
     
-def next(play_token, mix_id, play_request):
+def next(playToken, mix_id, play_request):
     '''
     This will get the next URL for playing. First, let's check and make sure we aren't
     at the end of the playlist. Then, get next URL and feed it into the stream.
     URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
     '''
-    play_request = BeautifulSoup(play_request)
+    print playToken, mix_id
+    play_requested = BeautifulSoup(play_request)
     #Are we at the end?
     at_end = ''
-    for i in play_request('at-end'):
+    for i in play_requested('at-end'):
         at_end = i.string
     print at_end
-    if at_end == 'false':
-        next = requests.get(base_url + 'sets/%s/next.xml?mix_id=%s?api_key=%s' % (play_token, mix_id, API))
-        play_stream(format_play_url(next.text))   
+    next = requests.get(base_url + 'sets/%s/next.xml?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
+    if 'false' in at_end:
+        print('not at end of mix, playing next track.')
+        print('Status: %s' % next)
+        if '404' in next.text:
+            print('Song not found.')
+        else:
+            playing = format_play_url(next.text)
+            print playing
+            play_stream(playing, blocking=True)
     else:
         print('We have a problem getting the next track. We\'re working on it.')
     
@@ -107,16 +119,15 @@ def start_stream():
     #print play_request
     metadata = BeautifulSoup(play_request.text)
     playing = format_play_url(play_request.text)
-    artist = ''
-    for i in metadata('performer'):
-        artist = i.string
+    print playing
+    print metadata('performer')
     track = ''
     for i in metadata('name'):
         track = i.string
-    print('Now playing \'%s\' by %s' % (track, artist))
+    #print('Now playing \'%s\' by %s' % (track, artist))
     threading.Timer(30, report_performance, args=[play_request.text, playToken, mix_id]).start()
-    play_stream(playing)
-    #next(play_token, mix_id, play_request.text)
+    play_stream(playing, blocking=True)
+    next(playToken, mix_id, play_request.text)
 
 request_mixes()
 start_stream()
