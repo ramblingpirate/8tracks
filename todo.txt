@@ -1,0 +1,4 @@
+[done] Fix mpg123 blocking problem.
+[WIP] Fix next functionality. mpg123 is reporting 'file access' error and 8tracks is reporting 404. I'm not sure if this 
+      is due to the song not existing at that location or if my URL formatting is bad.
+[WIP] Switch from ugly XML to JSON. 
