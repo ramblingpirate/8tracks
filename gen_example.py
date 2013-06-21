@@ -19,7 +19,7 @@ class EndOfStream(Exception):
 @authorized
 def track_urls(token, mix_id=1915496):
     def query_url(url):
-        response = requests.get(track_url)
+        response = requests.get(url)
         parsed_response = json.loads(response.content)
 
         if parsed_response[u'set'][u'at_end'] == 'true':
@@ -39,7 +39,11 @@ def track_urls(token, mix_id=1915496):
 
 
 if __name__ == '__main__':
-    import pirateTracks
-
-    for track in track_urls():
-        pirateTracks.play_stream(track.url, blocking=True)
+    x = track_urls()
+    print(next(x))
+    print(next(x))
+    print(next(x))
+    print(next(x))
+    print(next(x))
+    print(next(x))
+    print(next(x))
