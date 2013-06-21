@@ -24,18 +24,15 @@ Now, let's make the actual request to 8tracks server function.
 '''
 def request_mixes():
     request = json.loads(requests.get(base_url + 'mixes.json?api_key=' + API).content)
-    mix = [x[u'name'] for x in request[u'mixes']]
-    mix_id = [x[u'id'] for x in request[u'mixes']]
-    mix_dict = dict(zip(mix_id, mix))
-    for key, value in mix_dict.iteritems():
-        print('id: %s\nName: %r' % (key, value))
+    for ident, name in zip([x[u'id'] for x in request[u'mixes']],[x[u'name'] for x in request[u'mixes']]):
+        print('id: %s\nName: %r' % (ident, name))
 '''
 Now that that's done, let's ask the user for a mix selection
 (For testing purposes, we're going to just assume the first one, and start playing that.)
 '''
 def ask_which():
-    input = raw_input('Which mix do you want to listen to?: ')
-    return input
+    response = raw_input('Which mix do you want to listen to?: ')
+    return response
 '''
 For playing, we need to first request a new play token.
 '''
@@ -46,16 +43,16 @@ def play_token():
 8tracks needs to report each play to remain legal. A song is counted as "performed" at the 30 second mark. 
 def report_performancef()
 '''
-def report_performance(play_token, mix_id, track_id):
+def report_performance(playToken, mix_id, track_id):
     
     print("Now reporting song as performed. Yay for being legal.")
     #performance_soup = BeautifulSoup(play_request)
-    play_token, mix_id, track_id = play_token, mix_id, track_id
+    playToken, mix_id, track_id = playToken, mix_id, track_id
+    print playToken, mix_id, track_id
     '''
     http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
     '''
-    status = json.loads(requests.get(base_url + 'sets/%s/report.json?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API)))
-    print status[u'status']
+    status = requests.get(base_url + 'sets/%s/report.?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API))
 
 def play_stream(playing, blocking):
     '''
@@ -83,11 +80,12 @@ def next(playToken, mix_id):
     at the end of the playlist. Then, get next URL and feed it into the stream.
     URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
     '''
+    import ipdb; ipdb.set_trace()
     print playToken, mix_id
     #Are we at the end?
     next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API)).content)
-    print requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
-    pprint(next_url) #for testing.
+    #print requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
+    pprint(next_url)
 
     
 '''
