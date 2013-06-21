@@ -25,11 +25,12 @@ def authorized(func):
     parsed_response = json.loads(response.content)
     play_token = parsed_response[u'play_token']
 
-    @wraps
     def wrapped(*args, **kwargs):
-        new_kwargs = {token=play_token}
+        new_kwargs = {'token': play_token}
         new_kwargs.update(kwargs)
 
-        func(*new_args, **kwargs)
+        return func(*args, **new_kwargs)
+
+    wrapped.__doc__ = func.__doc__
 
     return wrapped
