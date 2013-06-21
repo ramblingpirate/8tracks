@@ -17,7 +17,20 @@ class EndOfStream(Exception):
 
 
 @authorized
-def track_urls(token, mix_id=1915496):
+def tracks(mix_id, token):
+    """Generator of Tracks from a 8tracks mix
+
+    Iterate over `tracks` and send the result to some sort
+    of program that can play audio streams:
+
+        for track in tracks(some_mix_id):
+            play_from_url(track.url)
+
+    Each Track object has a url attribute and an ident attribute
+    The ident attribute points to that track's 8tracks id (necessary
+    for reporting playback). The url is the location where the stream
+    can be found.
+    """
     def query_url(url):
         response = requests.get(url)
         parsed_response = json.loads(response.content)
@@ -39,7 +52,7 @@ def track_urls(token, mix_id=1915496):
 
 
 if __name__ == '__main__':
-    x = track_urls()
+    x = tracks(1915496)
     print(next(x))
     print(next(x))
     print(next(x))
