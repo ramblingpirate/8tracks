@@ -39,5 +39,7 @@ def track_urls(token, mix_id=1915496):
 
 
 if __name__ == '__main__':
-    for x in track_urls():
-        pass
+    import pirateTracks
+
+    for track in track_urls():
+        pirateTracks.play_stream(track.url, blocking=True)
