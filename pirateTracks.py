@@ -48,7 +48,6 @@ def report_performance(playToken, mix_id, track_id):
     print("Now reporting song as performed. Yay for being legal.")
     #performance_soup = BeautifulSoup(play_request)
     playToken, mix_id, track_id = playToken, mix_id, track_id
-    print playToken, mix_id, track_id
     '''
     http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
     '''
@@ -64,15 +63,11 @@ def play_stream(playing, blocking):
         stream.wait()
     return
 
-def print_metadata(play_request):
+def print_metadata(artist, track):
     '''
     This prints information about what is playing.
     '''
-    metadata = BeautifulSoup(play_request.text)
-    print metadata('performer')
-    track = ''
-    for i in metadata('name'):
-        track = i.string
+    print('Now Playing "{}" by {}'.format(track, artist))
         
 def next(playToken, mix_id):
     '''
@@ -82,12 +77,13 @@ def next(playToken, mix_id):
     '''
     print playToken, mix_id
     next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
-    #Are we at the end?
     '''
+    Are we at the end of the mix?
     If so, implement next mix using 
     URL FORM: http://8tracks.com/sets/[play_token]/next_mix.json?mix_id=[mix_id]&API
     '''
     if next_url[u'set'][u'at_end'] != 'false':
+        print_metadata(next_url[u'set'][u'track'][u'performer'], next_url[u'set'][u'track'][u'name'])
         play_stream(next_url[u'set'][u'track'][u'url'], blocking=True)
     else:
         next_mix = json.loads(requests.get(base_url + 'sets/%s/next_mix.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
@@ -105,7 +101,10 @@ def start_stream():
     playing = play_request[u'set'][u'track'][u'url']
     track = play_request[u'set'][u'track'][u'id']
     threading.Timer(30, report_performance, args=[playToken, mix_id, track]).start()
+    print_metadata(play_request[u'set'][u'track'][u'performer'], play_request[u'set'][u'track'][u'name'])
     play_stream(playing, blocking=True)
+    next(playToken, mix_id)
+    next(playToken, mix_id)
     next(playToken, mix_id)
 
 if __name__ == '__main__':
