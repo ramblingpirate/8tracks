@@ -52,7 +52,7 @@ def report_performance(playToken, mix_id, track_id):
     '''
     http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
     '''
-    status = requests.get(base_url + 'sets/%s/report.?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API))
+    status = requests.get(base_url + 'sets/%s/report.?track_id=%s&mix_id=%s&api_key=%s' % (play_token,track_id,mix_id,API))
 
 def play_stream(playing, blocking):
     '''
@@ -80,13 +80,18 @@ def next(playToken, mix_id):
     at the end of the playlist. Then, get next URL and feed it into the stream.
     URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
     '''
-    import ipdb; ipdb.set_trace()
     print playToken, mix_id
+    next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
     #Are we at the end?
-    next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API)).content)
-    #print requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
-    pprint(next_url)
-
+    '''
+    If so, implement next mix using 
+    URL FORM: http://8tracks.com/sets/[play_token]/next_mix.json?mix_id=[mix_id]&API
+    '''
+    if next_url[u'set'][u'at_end'] != 'false':
+        play_stream(next_url[u'set'][u'track'][u'url'], blocking=True)
+    else:
+        next_mix = json.loads(requests.get(base_url + 'sets/%s/next_mix.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
+        play_stream(next_mix[u'set'][u'track'][u'url'])
     
 '''
 Done. Now let's actually start the stream.
@@ -96,7 +101,7 @@ Note: Currently broken, but I can hack on this some more.
 def start_stream():
     playToken = play_token()
     mix_id = ask_which()
-    play_request = json.loads(requests.get(base_url + 'sets/%s/play.json?mix_id=%s?api_key=%s' % (playToken,mix_id,API)).content)
+    play_request = json.loads(requests.get(base_url + 'sets/%s/play.json?mix_id=%s&api_key=%s' % (playToken,mix_id,API)).content)
     playing = play_request[u'set'][u'track'][u'url']
     track = play_request[u'set'][u'track'][u'id']
     threading.Timer(30, report_performance, args=[playToken, mix_id, track]).start()
