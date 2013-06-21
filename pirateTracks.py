@@ -76,7 +76,10 @@ def next(playToken, mix_id):
     URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
     '''
     print playToken, mix_id
-    next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
+    nextQuery = requests.get(base_url + 'sets/%s/next.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API))
+    # PRINTING IN ONE LINE, FUCK YEA!
+    print nextQuery.url
+    next_url = json.loads(nextQuery.content)
     '''
     Are we at the end of the mix?
     If so, implement next mix using 
@@ -97,7 +100,10 @@ Note: Currently broken, but I can hack on this some more.
 def start_stream():
     playToken = play_token()
     mix_id = ask_which()
-    play_request = json.loads(requests.get(base_url + 'sets/%s/play.json?mix_id=%s&api_key=%s' % (playToken,mix_id,API)).content)
+    queryURL = requests.get(base_url + 'sets/%s/play.json?mix_id=%s&api_key=%s' % (playToken,mix_id,API))
+    # We'll shall print the above in ONE LINE!
+    print queryURL.url
+    play_request = json.loads(queryURL.content)
     playing = play_request[u'set'][u'track'][u'url']
     track = play_request[u'set'][u'track'][u'id']
     threading.Timer(30, report_performance, args=[playToken, mix_id, track]).start()
