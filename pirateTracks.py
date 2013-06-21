@@ -108,5 +108,6 @@ def start_stream():
     play_stream(playing, blocking=True)
     next(playToken, mix_id)
 
-request_mixes()
-start_stream()
+if __name__ == '__main__':
+    request_mixes()
+    start_stream()
