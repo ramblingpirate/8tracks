@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
-import requests
+import requests, json
 import subprocess, threading
+from pprint import pprint
 #from pydub import AudioSegment
 ''' 
 We need to contact 8tracks with the API key.
@@ -22,18 +23,12 @@ def format_play_url(url):
 Now, let's make the actual request to 8tracks server function.
 '''
 def request_mixes():
-    request = requests.get(base_url + 'mixes.xml?api_key=' + API)
-    soup = BeautifulSoup(request.text)
-    counter = 0
-    mix = []
-    mix_id = []
-    for i in soup('id'):
-        mix_id.append(i.string)
-    for i in soup('name'):
-        mix.append(i.string)
+    request = json.loads(requests.get(base_url + 'mixes.json?api_key=' + API).content)
+    mix = [x[u'name'] for x in request[u'mixes']]
+    mix_id = [x[u'id'] for x in request[u'mixes']]
     mix_dict = dict(zip(mix_id, mix))
     for key, value in mix_dict.iteritems():
-        print('id: %s\nName: %s' % (key, value))
+        print('id: %s\nName: %r' % (key, value))
 '''
 Now that that's done, let's ask the user for a mix selection
 (For testing purposes, we're going to just assume the first one, and start playing that.)
@@ -45,31 +40,22 @@ def ask_which():
 For playing, we need to first request a new play token.
 '''
 def play_token():
-    new_request = requests.get(base_url + '/sets/new.xml?api_key=' + API)
-    if new_request == '<Response [200]>':
-        print "OK"
-    new_soup = BeautifulSoup(new_request.text)
-    play_token = ''
-    for i in new_soup('play-token'):
-        play_token = i.string
-    return play_token
+    new_request = json.loads(requests.get(base_url + '/sets/new.json?api_key=' + API).content)
+    return new_request[u'play_token']
 '''
 8tracks needs to report each play to remain legal. A song is counted as "performed" at the 30 second mark. 
 def report_performancef()
 '''
-def report_performance(play_request, play_token, mix_id):
+def report_performance(play_token, mix_id, track_id):
     
     print("Now reporting song as performed. Yay for being legal.")
     #performance_soup = BeautifulSoup(play_request)
-    track_id = ''
-    performance_soup, play_token, mix_id = BeautifulSoup(play_request), play_token, mix_id
-    for i in performance_soup('id'):
-        track_id = i.string
+    play_token, mix_id, track_id = play_token, mix_id, track_id
     '''
     http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
     '''
-    status = requests.get(base_url + 'sets/%s/report.xml?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API))
-    print status
+    status = json.loads(requests.get(base_url + 'sets/%s/report.json?track_id=%s&mix_id=%s?api_key=%s' % (play_token,track_id,mix_id,API)))
+    print status[u'status']
 
 def play_stream(playing, blocking):
     '''
@@ -80,32 +66,29 @@ def play_stream(playing, blocking):
     if blocking:
         stream.wait()
     return
-    
-def next(playToken, mix_id, play_request):
+
+def print_metadata(play_request):
+    '''
+    This prints information about what is playing.
+    '''
+    metadata = BeautifulSoup(play_request.text)
+    print metadata('performer')
+    track = ''
+    for i in metadata('name'):
+        track = i.string
+        
+def next(playToken, mix_id):
     '''
     This will get the next URL for playing. First, let's check and make sure we aren't
     at the end of the playlist. Then, get next URL and feed it into the stream.
     URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
     '''
     print playToken, mix_id
-    play_requested = BeautifulSoup(play_request)
     #Are we at the end?
-    at_end = ''
-    for i in play_requested('at-end'):
-        at_end = i.string
-    print at_end
-    next = requests.get(base_url + 'sets/%s/next.xml?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
-    if 'false' in at_end:
-        print('not at end of mix, playing next track.')
-        print('Status: %s' % next)
-        if '404' in next.text:
-            print('Song not found.')
-        else:
-            playing = format_play_url(next.text)
-            print playing
-            play_stream(playing, blocking=True)
-    else:
-        print('We have a problem getting the next track. We\'re working on it.')
+    next_url = json.loads(requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API)).content)
+    print requests.get(base_url + 'sets/%s/next.json?mix_id=%s?api_key=%s' % (playToken, mix_id, API))
+    pprint(next_url) #for testing.
+
     
 '''
 Done. Now let's actually start the stream.
@@ -115,19 +98,12 @@ Note: Currently broken, but I can hack on this some more.
 def start_stream():
     playToken = play_token()
     mix_id = ask_which()
-    play_request = requests.get(base_url + 'sets/%s/play.xml?mix_id=%s?api_key=%s' % (playToken,mix_id,API))
-    #print play_request
-    metadata = BeautifulSoup(play_request.text)
-    playing = format_play_url(play_request.text)
-    print playing
-    print metadata('performer')
-    track = ''
-    for i in metadata('name'):
-        track = i.string
-    #print('Now playing \'%s\' by %s' % (track, artist))
-    threading.Timer(30, report_performance, args=[play_request.text, playToken, mix_id]).start()
+    play_request = json.loads(requests.get(base_url + 'sets/%s/play.json?mix_id=%s?api_key=%s' % (playToken,mix_id,API)).content)
+    playing = play_request[u'set'][u'track'][u'url']
+    track = play_request[u'set'][u'track'][u'id']
+    threading.Timer(30, report_performance, args=[playToken, mix_id, track]).start()
     play_stream(playing, blocking=True)
-    next(playToken, mix_id, play_request.text)
+    next(playToken, mix_id)
 
 request_mixes()
 start_stream()
