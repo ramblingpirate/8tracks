@@ -1,7 +1,7 @@
 [done] Fix mpg123 blocking problem.
-[done] Fix next functionality. mpg123 is reporting 'file access' error and 8tracks is reporting 404. I'm not sure if this 
+[WIP] Fix next functionality. mpg123 is reporting 'file access' error and 8tracks is reporting 404. I'm not sure if this 
       is due to the song not existing at that location or if my URL formatting is bad.
-[done] Switch from ugly XML to JSON. 
-[done] Ran into a bug when doing request_mixes(). Unfortunately, artsy people like being creative, which means using
+[WIP] Switch from ugly XML to JSON. 
+[WIP] Ran into a bug when doing request_mixes(). Unfortunately, artsy people like being creative, which means using
       non-ascii symbols and such. I need to find a way to gracefully strip or display those characters. As of now, 8tracks.py
       doesn't even run, thanks to today's list of 'Top Ten' mixes. Ugh.

@@ -52,11 +52,6 @@ def tracks(mix_id, token):
 
 
 if __name__ == '__main__':
-    x = tracks(1915496)
-    print(next(x))
-    print(next(x))
-    print(next(x))
-    print(next(x))
-    print(next(x))
-    print(next(x))
-    print(next(x))
+    x = tracks(1730261)
+    while True:
+        print(next(x))

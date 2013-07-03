@@ -1,5 +1,5 @@
 import requests, json
-import pirateTracks 
+import pirateTracks
 
 from pprint import pprint
 from getpass import getpass as gp
@@ -40,10 +40,10 @@ def new_user():
     
 def tracks_played(playToken, mixID):
     '''
-    Displays tracks played from current mix so far. User context ignorant. 
+    Displays tracks played from current mix so far. User context ignorant.
     URL FORM: http://8tracks.com/sets/[playToken]/tracks_played.json?mix_id=[mixID]
     
-    Individual track data is stored in [u'tracks']. Performer and Song Title are stored @ [u'tracks'][u'track'][u'performer'] and 
+    Individual track data is stored in [u'tracks']. Performer and Song Title are stored @ [u'tracks'][u'track'][u'performer'] and
         [u'tracks'][u'track'][u'name'], respectively.
     '''
     tracksPlayed = requests.get(URL + 'sets/{}/tracks_played.json?mix_id={}&api_version=2&api_key={}'.format(playToken, mixID, API))
@@ -67,11 +67,12 @@ def display_reviews(mixID):
     
     The results are paginated and you can select the next page by adding 'per_page=[pageNO]' to the URL.
     
-    Individual reviews are stored @ [u'reviews'][u'review']. 
+    Individual reviews are stored @ [u'reviews'][u'review'].
     Important information: [u'mix-id'], [u'user-id'], and [u'body'].
     '''
     reviewResponse = requests.get(URL + 'mixes/{}/reviews.json?per_page=10&api_version=2&api_key={}'.format(mixID, API))
     reviewJSON = json.loads(reviewResponse.content)
+    
     print('Reviews\n')
     for userID, body in zip([x[u'id'] for x in reviewJSON[u'reviews']], [x[u'body'] for x in reviewJSON[u'reviews']]):
         print('*****\nUser {} said "{}"\n*****'.format(userID, body))
