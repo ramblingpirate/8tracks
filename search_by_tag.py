@@ -40,3 +40,21 @@ def sort_results():
     '''
     Sorts results by newest/popular/hot
     '''
+
+def get_mix_reviews(mixID):
+    reviews_re = requests.get(URL + '/mixes/{}/reviews.json?api_key={}'.format(mixID, API))
+    reviews_JSON = json.loads(reviews_re.content)
+    review_results = {}
+    
+    for body, created in zip(
+        [x[u'body'] for x in reviews_JSON[u'reviews']],
+        [x[u'created_at'] for x in reviews_JSON[u'reviews']]):
+            review_results.update({created:body})
+            
+    return review_results
+    
+def get_mix_cover(mixID):
+    coverRE = requests.get(URL + '/mixes/{}.json?api_key={}'.format(mixID, API))
+    cover_JSON = json.loads(coverRE.content)
+    
+    return cover_JSON[u'mix'][u'cover_urls'][u'max200']

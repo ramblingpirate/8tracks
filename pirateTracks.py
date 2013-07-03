@@ -32,11 +32,11 @@ def display_mixes():
     request = json.loads(requests.get(base_url + 'mixes.json?api_key=' + API).content)
     for ident, name, noTracks in zip([x[u'id'] for x in request[u'mixes']],[x[u'name'] for x in request[u'mixes']], [x[u'tracks_count'] for x in request[u'mixes']]):
         print('id: {}\nName: {}\nTrack Count: {}'.format(ident, name.encode('utf-8'), noTracks))
-    
+        #thingy.append('ID: {} Mix: {} Track Count: {}'.format(ident,name.encode('utf-8'),noTracks))
+        
     trackDict = {}
     for ident, noTracks in zip([x[u'id'] for x in request[u'mixes']], [x[u'tracks_count'] for x in request[u'mixes']]):
         trackDict[ident] = noTracks
-        
     return trackDict
 
 def mix_selection():
@@ -50,6 +50,8 @@ def mix_selection():
     for key in trackDict.keys():
         if response in str(key):
             return key, trackDict[key]
+        else:
+            return response, 11
 
 def play_token():
     '''
@@ -138,7 +140,7 @@ def verify_user():
     secureHTTPS = 'https://8tracks.com/'
     verify = requests.post(secureHTTPS + 'sessions.json', data=data)
     verifyJSON = json.loads(verify.content)
-    return verifyJSON[u'user_token']
+    print verifyJSON[u'user_token']
 
 def start_stream():
     '''
@@ -160,7 +162,7 @@ def start_stream():
     play_stream(playing, blocking=True)
     
     songNo = 1
-    while songNo < noTracks:
+    while songNo <= noTracks:
         if songNo == noTracks:
             break
         else:
