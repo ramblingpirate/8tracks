@@ -12,7 +12,7 @@ class pirateTracks():
         self.window.set_title("pirateTracks")
         self.window.set_icon_from_file("pirateTracks.jpg")
         self.window.set_size_request(1024, 1024)
-        #self.window.set_opacity(.75)
+        #self.window.set_opacity(.75) Because, amusing.
         
         self.create_widgets()
         self.connect_signals()
@@ -82,9 +82,7 @@ class pirateTracks():
         self.window.add(self.hbox)
         
     def on_tree_activated(self, widget):
-#        model = widget.get_model()
-#        url = sbt.get_mix_info((model[row][2]))
-#        self.show_pic(url)
+        # DISPLAY ALL THE THINGS!
         selection = self.treeView.get_selection()
         tree_model, iter = selection.get_selected()
         url = sbt.get_mix_cover(tree_model.get_value(iter, 2))
@@ -113,7 +111,6 @@ class pirateTracks():
                 store.append((name[0], name[1], id))
         except AttributeError:
             self.search()
-            #store.append(("blank", "blank"))
         
         return store
     
