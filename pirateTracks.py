@@ -1,3 +1,4 @@
+from threading import Lock
 import requests, json, urllib
 from bs4 import BeautifulSoup
 import subprocess, threading
@@ -158,6 +159,7 @@ def start_stream():
     Main function. First grabs a play-token from 8tracks to keep track of sessions
     Next, asks user for a mix, then starts play/next/play/next cycle.
     '''
+    play_lock = Lock()
     playToken = play_token()
     mixID, noTracks = mix_selection()
     queryURL = requests.get(base_url + 'sets/{}/play.json?mix_id={}&api_version=3&api_key={}'.format(playToken,mixID,API))
@@ -168,7 +170,9 @@ def start_stream():
     
     print_metadata(play_request[u'set'][u'track'][u'performer'], play_request[u'set'][u'track'][u'name'])
     
-    play_stream(playing, blocking=True)
+    play_lock.acquire(blocking=True)
+    play_stream(playing)
+    play_lock.release()
     
 #    songNo = 1
 #    while songNo <= noTracks:
