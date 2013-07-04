@@ -1,52 +1,45 @@
-from threading import Lock
-import requests, json, urllib
-from bs4 import BeautifulSoup
-import subprocess, threading
-from pprint import pprint
-import gtk
+import json
+from threading import Lock  # , Timer
+from collections import namedtuple
+
+import requests
 import pygst
 pygst.require('0.10')
 import gst
+import gobject
 
-from getpass import getpass as gp
+#from getpass import getpass as gp
 
-'''
-We need to contact 8tracks with the API key.
-First things first, let's set up our url and API variables.
-'''
-base_url = 'http://8tracks.com/'
+#We need to contact 8tracks with the API key.
+#First things first, let's set up our url and API variables.
+
+BASE_URL = 'http://8tracks.com/'
 API = 'd9a4ca3f43e70029e3619fdc7869d1cd608141e0.'
 
-def format_play_url(url):
-    '''
-    Formats URL's into something that mpg123 can actually understand
-    '''
-    
-    play_soup = BeautifulSoup(url)
-    player = play_soup('url')
-    print play_soup
-    playing = ''
-    for i in player:
-        playing = i.string
-    print playing
-    return playing
+Mix = namedtuple('Mix', ['ident', 'name', 'track_count'])
 
 
-def display_mixes():
+def gather_mixes(print_mixes=False):
     '''
     Request 8tracks' Top mixes.
     Displays id, name, and track count.
     returns trackDict to invoking function
     '''
-    request = json.loads(requests.get(base_url + 'mixes.json?api_key=' + API).content)
-    for ident, name, noTracks in zip([x[u'id'] for x in request[u'mixes']],[x[u'name'] for x in request[u'mixes']], [x[u'tracks_count'] for x in request[u'mixes']]):
-        print('id: {}\nName: {}\nTrack Count: {}'.format(ident, name.encode('utf-8'), noTracks))
-        #thingy.append('ID: {} Mix: {} Track Count: {}'.format(ident,name.encode('utf-8'),noTracks))
-        
-    trackDict = {}
-    for ident, noTracks in zip([x[u'id'] for x in request[u'mixes']], [x[u'tracks_count'] for x in request[u'mixes']]):
-        trackDict[ident] = noTracks
-    return trackDict
+    mixes_url = BASE_URL + 'mixes.json?api_key=' + API
+    mixes_response = requests.get(mixes_url)
+    mixes_parsed = json.loads(mixes_response.content)
+
+    mixes = {}
+    for ident, name, track_count in zip(
+            [x[u'id'] for x in mixes_parsed[u'mixes']],
+            [x[u'name'] for x in mixes_parsed[u'mixes']],
+            [x[u'tracks_count'] for x in mixes_parsed[u'mixes']]):
+        mixes[ident] = Mix(ident, name, track_count)
+        if print_mixes:
+            print("ID: {} :: Name: {}".format(ident, name.encode('utf-8')))
+
+    return mixes
+
 
 def mix_selection():
     '''
@@ -54,127 +47,98 @@ def mix_selection():
     Allows user to select the mix.
     Returns id, noTracks to invoking function.
     '''
-    trackDict = display_mixes()
-    response = raw_input('Which mix do you want to listen to?: ')
-    for key in trackDict.keys():
-        if response in str(key):
-            return key, trackDict[key]
-        else:
-            return response, 11
+    mixes = gather_mixes(print_mixes=True)
+    #response = input('Which mix do you want to listen to?: ')
+    #response = raw_input('Which mix do you want to listen to?: ')
+    response = 1983822
+    return mixes[response]
 
-def play_token():
+
+def get_play_token():
     '''
     For playing, we need to first request a new play token.
-    URL FORM: base_url/sets/new.json?[API]
+    URL FORM: BASE_URL/sets/new.json?[API]
     '''
-    new_request = json.loads(requests.get(base_url + '/sets/new.json?api_key=' + API).content)
-    return new_request[u'play_token']
+    token_url = BASE_URL + '/sets/new.json?api_key=' + API
+    token_response = requests.get(token_url)
+    token = json.loads(token_response.content)
+    return token[u'play_token']
 
-def report_performance(playToken, mix_id, track_id):
+
+def report_performance(play_token, mix_id, track_id):
     '''
-    8tracks needs to report each play to remain legal. A song is counted as "performed" at the 30 second mark.
-    http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
+    8tracks needs to report each play to remain legal. A song is counted as
+    "performed" at the 30 second mark.
     '''
     print("Now reporting song as performed. Yay for being legal.")
-    playToken, mix_id, track_id = playToken, mix_id, track_id
-    status = requests.get(base_url + 'sets/%s/report.?track_id=%s&mix_id=%s&api_key=%s' % (play_token,track_id,mix_id,API))
+    request_url = BASE_URL + 'sets/{}/report.?track_id={}&mix_id={}&api_key={}'
+    requests.get(request_url.format(play_token, track_id, mix_id, API))
 
-def play_stream(playing, blocking):
+
+def play_stream(playing):
     '''
-    Updated implementation! WOO! play_stream now uses gstreamer as it's player. Cross-Platform ready!
+    Updated implementation! WOO! play_stream now uses gstreamer as its
+    player. Cross-Platform ready!
     '''
-    player = gst.element_factory_make('playbin', 'player')
-    pulse = gst.element_factory_make("pulsesink", "pulse")
+    def callback(bus, message):
+        print('CALLBACK!')
+
+    player = gst.element_factory_make('playbin2', 'player')
+    bus = player.get_bus()
+    bus.add_signal_watch()
+    bus.enable_sync_message_emission()
+    bus.connect('message', callback)
+    #sink = gst.element_factory_make("pulsesink", "pulse")
+    sink = gst.element_factory_make('fakesink', 'fakesink')
+    player.set_property("audio-sink", sink)
     player.set_property('uri', playing)
-    player.set_property("audio-sink", pulse)
+
     player.set_state(gst.STATE_PLAYING)
-    #gtk.main()
-    
 
-def print_metadata(artist, track):
-    '''
-    This prints information about what is playing.
-    '''
-    print('*****\nNow Playing "{}" by {}\n*****'.format(track.encode('utf-8'), artist.encode('utf-8')))
-    '''
-    Eventually, this will also display 'Track {} of {}' using songNo (current track number) and trackNo (total number of tracks in a mix.)
-    '''
 
-def skip_track(playToken, mixID):
+def next_track(play_token, mix_id):
     '''
-    Skip Track
-    
-    Checks to see if skips are allowed, if true, skip to next URL Stream.
-    If false, display so to user.
+    This will get the next URL for playing. First, let's check and make
+    sure we aren't at the end of the playlist. Then, get next URL and
+    feed it into the stream.
     '''
-    skipResponse = requests.get(base_url + '/sets/{}/skip.json?mix_id={}&api_version=2&api_key={}'.format(playToken,mixID,API))
-    skipJSON = json.loads(skipResponse.content)
-    if skipJSON[u'status'] == '403 Forbidden':
-        print('*****\n' + skipJSON[u'notices'] + ' You may skip again in {} seconds.'.format(skipJSON[u'skip_allowed_in_seconds']) + '\n*****')
-    else:
-        if skipJSON[u'set'][u'skip_allowed'] == 'True':
-            play_stream(format_play_url(skipJSON[u'set'][u'track'][u'url']), blocking=True)
+    track_response = requests.get(
+        BASE_URL + 'sets/{}/next.json?mix_id={}&api_key={}'.format(
+            play_token, mix_id, API))
 
-def next_track(playToken, mixID):
-    '''
-    This will get the next URL for playing. First, let's check and make sure we aren't
-    at the end of the playlist. Then, get next URL and feed it into the stream.
-    URL FORM: http://8tracks.com/sets/[play_token]/next.xml?mix_id=[mix_id]?api_key=[API]
-    '''
-    nextQuery = requests.get(base_url + 'sets/%s/next.json?mix_id=%s&api_key=%s' % (playToken, mixID, API))
-    nextJSON = json.loads(nextQuery.content)
-    '''
-    Are we at the end of the mix?
-    If so, play next mix.
-    '''
-    if nextJSON[u'set'][u'at_end'] != 'false':
-        print_metadata(nextJSON[u'set'][u'track'][u'performer'], nextJSON[u'set'][u'track'][u'name'])
-        return nextJSON[u'set'][u'track'][u'url']
-    else:
-        next_mix = json.loads(requests.get(base_url + 'sets/%s/next_mix.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
-        play_stream(next_mix[u'set'][u'track'][u'url'])
-    
-'''
-Done. Now let's actually start the stream.
-url form: http://8tracks.com/sets/play_token/play.xml?mix_id?api_key=
-Note: Currently broken, but I can hack on this some more.
-'''
-def verify_user():
-    '''
-    Get username and password from user. Currently unused function.
-    Make an https/ssl POST request to https://8tracks.com/sessions.json with data as login=[login]&password=[pass].
-    Will return with embedded user-token to be used throughout site.
-    Afterwards, return the user-token to invoking function.
-    '''
-    username = raw_input('Username: ')
-    password = gp()
-    data = 'login={}&password={}'.format(username, password)
-    secureHTTPS = 'https://8tracks.com/'
-    verify = requests.post(secureHTTPS + 'sessions.json', data=data)
-    verifyJSON = json.loads(verify.content)
-    print verifyJSON[u'user_token']
+    parsed_response = json.loads(track_response.content)
+    return parsed_response[u'set'][u'track'][u'url']
 
-def start_stream():
+
+def start_streaming():
     '''
-    Main function. First grabs a play-token from 8tracks to keep track of sessions
-    Next, asks user for a mix, then starts play/next/play/next cycle.
+    Main function. First grabs a play-token from 8tracks to keep track of
+    sessions Next, asks user for a mix, then starts play/next/play/next cycle.
     '''
     play_lock = Lock()
-    playToken = play_token()
-    mixID, noTracks = mix_selection()
-    queryURL = requests.get(base_url + 'sets/{}/play.json?mix_id={}&api_version=3&api_key={}'.format(playToken,mixID,API))
-    play_request = json.loads(queryURL.content)
-    playing = play_request[u'set'][u'track'][u'track_file_stream_url']
-    trackID = play_request[u'set'][u'track'][u'id']
-    threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
-    
-    print_metadata(play_request[u'set'][u'track'][u'performer'], play_request[u'set'][u'track'][u'name'])
-    
-    for songNo in range(noTracks):
-        threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
+    play_token = get_play_token()
+
+    mix = mix_selection()
+
+    #query_url = (BASE_URL +
+                 #'sets/{}/play.json?mix_id={}&api_version=3&api_key={}')
+    #query_response = requests.get(query_url.format(
+        #play_token, mix.ident, API))
+    #play_request = json.loads(query_response.content)
+    #track_id = play_request[u'set'][u'track'][u'id']
+
+    for _ in range(mix.track_count):
+        track_url = next_track(play_token, mix.ident)
+
         play_lock.acquire(True)
-        play_stream(playing)
+        print("playing!")
+        #timer = Timer(
+            #30, report_performance, args=[play_token, mix.ident, track_id])
+        #timer.start()
+        play_stream(track_url)
         play_lock.release()
 
+
 if __name__ == '__main__':
-    start_stream()
+    gobject.threads_init()
+    start_streaming()
