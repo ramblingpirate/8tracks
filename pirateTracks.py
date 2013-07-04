@@ -170,19 +170,11 @@ def start_stream():
     
     print_metadata(play_request[u'set'][u'track'][u'performer'], play_request[u'set'][u'track'][u'name'])
     
-    play_lock.acquire(blocking=True)
-    play_stream(playing)
-    play_lock.release()
-    
-#    songNo = 1
-#    while songNo <= noTracks:
-#        if songNo == noTracks:
-#            break
-#        else:
-#            threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
-#            next_track(playToken, mixID)
-#            songNo += 1
-
+    for songNo in range(noTracks):
+        threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
+        play_lock.acquire(True)
+        play_stream(playing)
+        play_lock.release()
 
 if __name__ == '__main__':
     start_stream()
