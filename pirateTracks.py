@@ -1,9 +1,15 @@
-import requests, json
+import requests, json, urllib
+from bs4 import BeautifulSoup
 import subprocess, threading
 from pprint import pprint
+import gtk
+import pygst
+pygst.require('0.10')
+import gst
 
 from getpass import getpass as gp
-''' 
+
+'''
 We need to contact 8tracks with the API key.
 First things first, let's set up our url and API variables.
 '''
@@ -17,9 +23,11 @@ def format_play_url(url):
     
     play_soup = BeautifulSoup(url)
     player = play_soup('url')
+    print play_soup
     playing = ''
     for i in player:
         playing = i.string
+    print playing
     return playing
 
 
@@ -41,7 +49,7 @@ def display_mixes():
 
 def mix_selection():
     '''
-    Calls to display_mixes to present list/info. 
+    Calls to display_mixes to present list/info.
     Allows user to select the mix.
     Returns id, noTracks to invoking function.
     '''
@@ -55,7 +63,7 @@ def mix_selection():
 
 def play_token():
     '''
-    For playing, we need to first request a new play token. 
+    For playing, we need to first request a new play token.
     URL FORM: base_url/sets/new.json?[API]
     '''
     new_request = json.loads(requests.get(base_url + '/sets/new.json?api_key=' + API).content)
@@ -65,19 +73,22 @@ def report_performance(playToken, mix_id, track_id):
     '''
     8tracks needs to report each play to remain legal. A song is counted as "performed" at the 30 second mark.
     http://8tracks.com/sets/[play_token]/report.xml?track_id=[track_id]&mix_id=[mix_id]
-    '''    
+    '''
     print("Now reporting song as performed. Yay for being legal.")
     playToken, mix_id, track_id = playToken, mix_id, track_id
     status = requests.get(base_url + 'sets/%s/report.?track_id=%s&mix_id=%s&api_key=%s' % (play_token,track_id,mix_id,API))
 
 def play_stream(playing, blocking):
     '''
-    Current implementation is to open mpg123 as subprocess to play stream.
+    Updated implementation! WOO! play_stream now uses gstreamer as it's player. Cross-Platform ready!
     '''
-    stream = subprocess.Popen(['mpg123', playing])
-    if blocking:
-        stream.wait()
-    return
+    player = gst.element_factory_make('playbin', 'player')
+    pulse = gst.element_factory_make("pulsesink", "pulse")
+    player.set_property('uri', playing)
+    player.set_property("audio-sink", pulse)
+    player.set_state(gst.STATE_PLAYING)
+    #gtk.main()
+    
 
 def print_metadata(artist, track):
     '''
@@ -92,7 +103,7 @@ def skip_track(playToken, mixID):
     '''
     Skip Track
     
-    Checks to see if skips are allowed, if true, skip to next URL Stream. 
+    Checks to see if skips are allowed, if true, skip to next URL Stream.
     If false, display so to user.
     '''
     skipResponse = requests.get(base_url + '/sets/{}/skip.json?mix_id={}&api_version=2&api_key={}'.format(playToken,mixID,API))
@@ -117,7 +128,7 @@ def next_track(playToken, mixID):
     '''
     if nextJSON[u'set'][u'at_end'] != 'false':
         print_metadata(nextJSON[u'set'][u'track'][u'performer'], nextJSON[u'set'][u'track'][u'name'])
-        play_stream(nextJSON[u'set'][u'track'][u'url'], blocking=True)
+        return nextJSON[u'set'][u'track'][u'url']
     else:
         next_mix = json.loads(requests.get(base_url + 'sets/%s/next_mix.json?mix_id=%s&api_key=%s' % (playToken, mix_id, API)).content)
         play_stream(next_mix[u'set'][u'track'][u'url'])
@@ -129,8 +140,8 @@ Note: Currently broken, but I can hack on this some more.
 '''
 def verify_user():
     '''
-    Get username and password from user. Currently unused function. 
-    Make an https/ssl POST request to https://8tracks.com/sessions.json with data as login=[login]&password=[pass]. 
+    Get username and password from user. Currently unused function.
+    Make an https/ssl POST request to https://8tracks.com/sessions.json with data as login=[login]&password=[pass].
     Will return with embedded user-token to be used throughout site.
     Afterwards, return the user-token to invoking function.
     '''
@@ -151,24 +162,23 @@ def start_stream():
     mixID, noTracks = mix_selection()
     queryURL = requests.get(base_url + 'sets/{}/play.json?mix_id={}&api_version=3&api_key={}'.format(playToken,mixID,API))
     play_request = json.loads(queryURL.content)
-    
-    playing = play_request[u'set'][u'track'][u'url']
+    playing = play_request[u'set'][u'track'][u'track_file_stream_url']
     trackID = play_request[u'set'][u'track'][u'id']
-    
     threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
     
     print_metadata(play_request[u'set'][u'track'][u'performer'], play_request[u'set'][u'track'][u'name'])
     
     play_stream(playing, blocking=True)
     
-    songNo = 1
-    while songNo <= noTracks:
-        if songNo == noTracks:
-            break
-        else:
-            threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
-            next_track(playToken, mixID)
-            songNo += 1
+#    songNo = 1
+#    while songNo <= noTracks:
+#        if songNo == noTracks:
+#            break
+#        else:
+#            threading.Timer(30, report_performance, args=[playToken, mixID, trackID]).start()
+#            next_track(playToken, mixID)
+#            songNo += 1
+
 
 if __name__ == '__main__':
     start_stream()
