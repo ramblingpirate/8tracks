@@ -4,9 +4,11 @@ import json
 from collections import namedtuple
 
 import requests
-import pygst
-pygst.require('0.10')
-import gst
+import gi
+from gi.repository import Gst, GObject
+gi.require_version('Gst', '1.0')
+GObject.threads_init()
+Gst.init(None)
 
 from getpass import getpass as gp
 
@@ -66,7 +68,7 @@ def mix_selection():
     mixes = gather_mixes(print_mixes=True)
     # TODO: Swap response to use user input
     #response = raw_input('Which mix do you want to listen to?: ')
-    response = 1983822
+    response = 1997452
     return mixes[response]
 
 
@@ -105,19 +107,26 @@ def play_stream(playing):
     player. Cross-Platform ready!
     '''
     def callback(bus, message):
-        print('Please work, Mr. Callback!')
+        print message
 
-    player = gst.element_factory_make('playbin2', 'player')
-    bus = player.get_bus()
+    # Pipeline
+    pipeline = Gst.Pipeline()
+    
+    # Bus
+    bus = pipeline.get_bus()
     bus.add_signal_watch()
-    bus.enable_sync_message_emission()
-    bus.connect('message', callback)
-    sink = gst.element_factory_make("pulsesink", "pulse")
-    player.set_property("audio-sink", sink)
-    player.set_property('uri', playing)
-
-    player.set_state(gst.STATE_PLAYING)
-
+    bus.connect('message::eos', callback)
+    bus.connect('message::error', ApiMisuseError)
+    
+    # Create Elements.
+    sink = Gst.ElementFactory.make("playbin", None)
+    
+    # Add to pipe
+    pipeline.add(sink)
+    
+    # Set props.
+    sink.set_property('uri', playing)
+    sink.set_state(Gst.State.PLAYING)
 
 def next_track(play_token, mix_id):
     '''
@@ -183,7 +192,7 @@ def start_streaming():
         #timer = Timer(
             #30, report_performance, args=[play_token, mix.ident, track_id])
         #timer.start()
-        play_stream(track.url)
+        play_stream(track.url[1])
 
 
 def verify_user():
