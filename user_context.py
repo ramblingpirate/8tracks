@@ -1,8 +1,6 @@
 import requests, json
-import pirateTracks
-
-from pprint import pprint
-from getpass import getpass as gp
+#import pirateTracks
+#from getpass import getpass as gp
 
 secureURL = 'https://8tracks.com/'
 URL = 'http://8tracks.com/'
@@ -19,7 +17,7 @@ def new_user():
     
     Failure will be stored in [u'notices'][u'notice']
     '''
-    desiredUsername = raw_input('Desired Username: ').rstrip()
+    desiredUsername = raw_input("Desired Username: ").rstrip()
     desiredPassword = gp().rstrip()
     email = raw_input('Email: ').rstrip()
     agreement = raw_input('Do you agree? ').rstrip()
@@ -78,14 +76,14 @@ def display_reviews(mixID):
         print('*****\nUser {} said "{}"\n*****'.format(userID, body))
     print('\n')
     
-def post_review(username, password, mixID, body):
+def post_review(username="blank", password="blank", mixID="blank", body="STupid test"):
     '''
     Authenticates, then posts a user comment. User context aware.
     URL: http://8tracks.com/reviews.json
     DATA: "review[mix_id]=[mixID]&review[body]=STRING THAT USER TYPED IN"
     AUTH Method: requests.auth() OR http://www.python-requests.org/en/latest/user/advanced/#custom-authentication
     '''
-    pass
+    print("User clicked submit with {} as it's review. worked!".format(body))
 
 def toggle_like(username, password, mixID):
     '''

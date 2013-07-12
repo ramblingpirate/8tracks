@@ -4,10 +4,9 @@ import json
 from collections import namedtuple
 
 import requests
-import gi
-from gi.repository import Gst, GObject
-gi.require_version('Gst', '1.0')
-GObject.threads_init()
+from gi import *
+gi.require_version('Gtk', '2.0')
+from gi.repository import GObject, Gtk, Gst
 Gst.init(None)
 
 from getpass import getpass as gp
@@ -68,7 +67,7 @@ def mix_selection():
     mixes = gather_mixes(print_mixes=True)
     # TODO: Swap response to use user input
     #response = raw_input('Which mix do you want to listen to?: ')
-    response = 1997452
+    response = 1998611
     return mixes[response]
 
 
@@ -117,6 +116,7 @@ def play_stream(playing):
     bus.add_signal_watch()
     bus.connect('message::eos', callback)
     bus.connect('message::error', ApiMisuseError)
+    bus.enable_sync_message_emission()
     
     # Create Elements.
     sink = Gst.ElementFactory.make("playbin", None)
@@ -127,7 +127,7 @@ def play_stream(playing):
     # Set props.
     sink.set_property('uri', playing)
     sink.set_state(Gst.State.PLAYING)
-
+    
 def next_track(play_token, mix_id):
     '''
     This will get the next URL for playing. First, let's check and make
@@ -192,7 +192,7 @@ def start_streaming():
         #timer = Timer(
             #30, report_performance, args=[play_token, mix.ident, track_id])
         #timer.start()
-        play_stream(track.url[1])
+        play_stream(track.url)
 
 
 def verify_user():
