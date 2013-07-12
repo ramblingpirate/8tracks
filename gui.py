@@ -41,9 +41,15 @@ class pirateTracks(Gtk.Window):
         
         # Create 3a.
         self.user_pic = Gtk.Image()
-        self.user_pic.set_from_file("user.png")
+        self.user_pic.set_from_file("user.jpeg")
         self.vbox_left_user = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.vbox_left.pack_start(self.user_pic, False, False, 0)
+        self.left_user_favorite_tracks = Gtk.Button("Favorite Tracks")
+        self.left_user_liked_mixes = Gtk.Button("Liked Mixes")
+        self.left_user_button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.vbox_left_user.pack_start(self.left_user_favorite_tracks, False, False, 0)
+        self.vbox_left_user.pack_start(self.left_user_liked_mixes, False, False, 0)
+        
+        self.vbox_left.pack_start(self.user_pic, True, False, 0)
         self.vbox_left.pack_start(self.vbox_left_user, False, False, 0)
         
         # Create 3b.
@@ -59,7 +65,7 @@ class pirateTracks(Gtk.Window):
         self.entry_submit = Gtk.Entry()
         #self.entry_submit.set_text("Enter your review here. Remember, they are people too.")
         self.hbox_submit.pack_start(self.submit_button, False, False, 0)
-        self.hbox_submit.pack_start(self.entry_submit, False, False, 0)
+        self.hbox_submit.pack_start(self.entry_submit, True, True, 0)
         
         # Create 3c
         self.label = Gtk.Label("Place holder for textview stuff.")
