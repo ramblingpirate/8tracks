@@ -4,8 +4,6 @@ import json
 from collections import namedtuple
 
 import requests
-from gi import *
-gi.require_version('Gtk', '2.0')
 from gi.repository import GObject, Gtk, Gst
 Gst.init(None)
 
@@ -67,7 +65,7 @@ def mix_selection():
     mixes = gather_mixes(print_mixes=True)
     # TODO: Swap response to use user input
     #response = raw_input('Which mix do you want to listen to?: ')
-    response = 1998611
+    response = 2021043
     return mixes[response]
 
 

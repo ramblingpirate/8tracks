@@ -83,7 +83,7 @@ def post_review(username="blank", password="blank", mixID="blank", body="STupid 
     DATA: "review[mix_id]=[mixID]&review[body]=STRING THAT USER TYPED IN"
     AUTH Method: requests.auth() OR http://www.python-requests.org/en/latest/user/advanced/#custom-authentication
     '''
-    print("User clicked submit with {} as it's review. worked!".format(body))
+    print("User clicked submit with '{}' as it's review. worked!".format(body))
 
 def toggle_like(username, password, mixID):
     '''
@@ -111,3 +111,15 @@ def toggle_follow(username, password, userID):
     AUTH Method: requests.auth() OR http://www.python-requests.org/en/latest/user/advanced/#custom-authentication
     '''
     pass
+
+def list_favorites():
+    # *****
+    # This needs to list all favorited tracks for logged in user.
+    # *****
+    print("Oh you know, that one you like.")
+
+def list_liked_mixes():
+    # *****
+    # This needs to list all liked mixes for logged in user.
+    # *****
+    print("Oh you know, that one you like.")
