@@ -1,14 +1,20 @@
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GdkPixbuf
 
 class pirateTracks(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="pirateTracks")
         self.set_default_size(500,500)
+        self.icon_pix = GdkPixbuf.Pixbuf.new_from_file("pirateTracks.jpg")
+        self.set_icon(self.icon_pix)
+        
         
         self.create_widgets()
         self.connect("delete-event", Gtk.main_quit)
         self.show_all()
         Gtk.main()
+        
+    def load_image():
+        pass
         
     def create_widgets(self):
         # *****
@@ -26,18 +32,44 @@ class pirateTracks(Gtk.Window):
         # VBox overall container creation
         self.vbox_overall = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         
-        # Ignoring for now, but will contain play/pause and cover photo. Moving on.
+        # Create HBox for Play/Pause/Cover photo
+        self.hbox_playpause = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        
+        # Create items for hbox_playpause, attach button to playpause_buttonbox
+        self.playpause_buttonbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.cover_photo = Gtk.Image()
+        self.cover_photo.set_from_file("mixcover.jpg")
+        self.play_button_image = Gtk.Image()
+        self.skip_button_image = Gtk.Image()
+        self.play_button_image.set_from_stock(Gtk.STOCK_MEDIA_PLAY, Gtk.IconSize.BUTTON)
+        self.skip_button_image.set_from_stock(Gtk.STOCK_MEDIA_NEXT, Gtk.IconSize.BUTTON)
+        self.play_button = Gtk.Button()
+        self.skip_button = Gtk.Button()
+        self.play_button.set_image(self.play_button_image)
+        self.skip_button.set_image(self.skip_button_image)
+        self.hbox_playpause.pack_start(self.cover_photo, False, False, 0)
+        self.playpause_buttonbox.pack_start(self.play_button, False, False, 0)
+        self.playpause_buttonbox.pack_start(self.skip_button, False, False, 0)
+        self.hbox_playpause.pack_start(self.playpause_buttonbox, False, False, 0)
+        self.playpause_sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.vbox_overall.pack_start(self.hbox_playpause, False, False, 0)
+        self.vbox_overall.pack_start(self.playpause_sep, False, False, 0)
+        
         # Create HBox to contain updated item containers
         self.hbox_updated_items = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.vbox_overall.pack_start(self.hbox_updated_items, False, False, 0)
+        self.vbox_overall.pack_start(self.hbox_updated_items, True, True, 0)
         
         # Create 3.
         self.vbox_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.verseperator1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        self.verseperator2 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
         self.vbox_center = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.vbox_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.hbox_updated_items.pack_start(self.vbox_left, False, False, 0)
-        self.hbox_updated_items.pack_start(self.vbox_center, False, False, 0)
-        self.hbox_updated_items.pack_start(self.vbox_right, False, False, 0)
+        self.hbox_updated_items.pack_start(self.vbox_left, True, True, 0)
+        self.hbox_updated_items.pack_start(self.verseperator1, True, True, 0)
+        self.hbox_updated_items.pack_start(self.vbox_center, True, True, 0)
+        self.hbox_updated_items.pack_start(self.verseperator2, True, True, 0)
+        self.hbox_updated_items.pack_start(self.vbox_right, True, True, 0)
         
         # Create 3a.
         self.user_pic = Gtk.Image()
