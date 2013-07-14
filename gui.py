@@ -8,9 +8,22 @@ import search_by_tag as sbt
 class pirateTracks(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="pirateTracks")
+        self.set_name('pirateTracks')
         self.set_default_size(500,500)
         self.icon_pix = GdkPixbuf.Pixbuf.new_from_file("pirateTracks.jpg")
         self.set_icon(self.icon_pix)
+        
+        self.style_provider = Gtk.CssProvider()
+        
+        css = open(('style.css'), 'rb')
+        css_data = css.read()
+        css.close()
+        self.style_provider.load_from_data(css_data)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            self.style_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
         
         self.create_widgets()
         self.connect("delete-event", Gtk.main_quit)
@@ -127,6 +140,7 @@ class pirateTracks(Gtk.Window):
         self.mix_tree_sw.set_border_width(0)
         self.mix_tree_sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.mix_tree_sw.set_min_content_height(450)
+        #self.mix_tree_sw.set_max_content_width(100)
         self.mix_tree_view = Gtk.TreeView()
         self.mix_tree_view.set_model(model=self.create_mix_list_model())
         self.create_column(self.mix_tree_view)
@@ -150,7 +164,6 @@ class pirateTracks(Gtk.Window):
     def on_play_clicked(self, widget):
         # Calls play_stream from pirateTracks, changes button image to "Pause"
         # Not actually adding the play_stream yet, because of reasons.
-        pirate.start_streaming()
         print("Now simulating the playing of the songs and the stuff.")
         # Here is where we would switch the button image to "Pause"
         # not sure how to implement yet.

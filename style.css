@@ -1,0 +1,20 @@
+#pirateTracks {
+    background-color: #868F8F;
+    box-shadow: 0 0 5px #6D6D6D inset;
+    border-radius: 2px;
+    margin: 5px;
+}
+GtkEntry {
+    background-color: #868F8F;
+    border-radius: 2px;
+    margin: 5px;
+    box-shadow: 0 0 5px #6D6D6D;
+}
+GtkTextView, GtkTreeView {
+    background-color: #7B8D8D;
+}
+GtkButton {
+    background-color: transparent;
+    color: #6F8A8A;
+    border-radius: 2px;
+}
