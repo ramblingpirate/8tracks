@@ -9,4 +9,11 @@
                   // Anything having to do with user login functionality needs to be worked over
                      I haven't decided how to implement authorizing to the site. // rp
                      
+                  // So, I need to change the infrastructure for pirateTracks.py a bit to integrate a LOT
+                     better with gui.py. This includes figuring out what to do when the play button is clicked,
+                     how the play_stream is passed the mix id with respect to the mix feed TreeView/Search Function
+                     
+                     I'm REALLY not sure how I want to do this. Hopefully r3 has some ideas on this issue, because at
+                     the moment, I'm all out. BTW, why did I want to do this again? // rp
+                     
 [ Done ]          // a LOT of things that I don't feel like documenting right now. // rp
