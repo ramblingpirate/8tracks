@@ -1,6 +1,9 @@
-import json, requests, urllib2
+from collections import namedtuple
 
+import json, requests, urllib2
 from pprint import pprint
+
+review_info = namedtuple('User', ['review_body', 'created_at', 'user_id'])
 
 URL = 'http://8tracks.com/'
 API = 'd9a4ca3f43e70029e3619fdc7869d1cd608141e0.'
@@ -46,12 +49,23 @@ def get_mix_reviews(mixID):
     reviews_JSON = json.loads(reviews_re.content)
     review_results = {}
     
-    for body, created in zip(
+    for body, created, id in zip(
         [x[u'body'] for x in reviews_JSON[u'reviews']],
-        [x[u'created_at'] for x in reviews_JSON[u'reviews']]):
-            review_results.update({created:body})
+        [x[u'created_at'] for x in reviews_JSON[u'reviews']],
+        [x[u'id'] for x in reviews_JSON[u'reviews']]):
+            review_results[id] = review_info(body, created, id)
             
     return review_results
+    
+def get_user_info(user_id):
+    # Retrieves the user id to display the username/picture.
+    try:
+        user_RE = requests.get(URL + '/users/{}.json?api_key={}'.format(user_id, API))
+        user_JSON = json.loads(user_RE.content)
+        #pprint(user_JSON[u'user'])
+        return user_JSON[u'user'][u'slug']
+    except KeyError:
+        return "User deleted"
     
 def get_mix_cover(mixID):
     coverRE = requests.get(URL + '/mixes/{}.json?api_key={}'.format(mixID, API))
