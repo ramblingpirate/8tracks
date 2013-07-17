@@ -5,7 +5,8 @@ from collections import namedtuple
 
 import requests
 from gi.repository import GObject, Gtk, Gst
-Gst.init(None)
+from gi import require_version
+require_version('Gst', '1.0')
 
 from getpass import getpass as gp
 
@@ -15,6 +16,16 @@ API = 'd9a4ca3f43e70029e3619fdc7869d1cd608141e0.'
 
 Mix = namedtuple('Mix', ['ident', 'name', 'track_count'])
 Track = namedtuple('Track', ['artist', 'title', 'url'])
+
+Gst.init(None)
+# Pipeline
+pipeline = Gst.Pipeline()
+
+# Create Elements.
+sink = Gst.ElementFactory.make("playbin", None)
+
+# Add to pipe
+pipeline.add(sink)
 
 
 class ApiMisuseError(Exception):
@@ -56,7 +67,7 @@ def gather_mixes(print_mixes=False):
     return mixes
 
 
-def mix_selection():
+def mix_selection(response):
     '''
     Calls to display_mixes to present list/info.
     Allows user to select the mix.
@@ -65,7 +76,6 @@ def mix_selection():
     mixes = gather_mixes(print_mixes=True)
     # TODO: Swap response to use user input
     #response = raw_input('Which mix do you want to listen to?: ')
-    response = 2021043
     return mixes[response]
 
 
@@ -98,33 +108,29 @@ def report_performance(play_token, mix_id, track_id):
     requests.get(request_url.format(play_token, track_id, mix_id, API))
 
 
-def play_stream(playing):
+def play_stream(track):
     '''
     Updated implementation! WOO! play_stream now uses gstreamer as its
     player. Cross-Platform ready!
     '''
     def callback(bus, message):
-        print message
-
-    # Pipeline
-    pipeline = Gst.Pipeline()
+        t = message.type
+        if t == Gst.MessageType.EOS:
+            sink.set_state(Gst.State.READY)
+        elif t == Gst.MessageType.ERROR:
+            err, debug = message.parse_error()
+            print "Error: {}, {}".format(err, debug)
     
     # Bus
     bus = pipeline.get_bus()
     bus.add_signal_watch()
-    bus.connect('message::eos', callback)
-    bus.connect('message::error', ApiMisuseError)
+    bus.connect('message', callback)
     bus.enable_sync_message_emission()
     
-    # Create Elements.
-    sink = Gst.ElementFactory.make("playbin", None)
-    
-    # Add to pipe
-    pipeline.add(sink)
-    
     # Set props.
-    sink.set_property('uri', playing)
+    sink.set_property('uri', track.url)
     sink.set_state(Gst.State.PLAYING)
+    print_metadata(track)
     
 def next_track(play_token, mix_id):
     '''
@@ -161,15 +167,12 @@ def skip_track(play_token, mix_id):
     return _build_track_from_response(parsed_response)
 
 
-def start_streaming():
+def start_streaming(play_token, mix):
     '''
     Main function. First grabs a play-token from 8tracks to keep track of
     sessions Next, asks user for a mix, then starts play/next/play/next cycle.
     '''
-    play_token = get_play_token()
-
-    mix = mix_selection()
-
+    mix = mix_selection(mix)
     # TODO: Following commented lines are for reporting performance.
     #       Reenable as needed.
 
@@ -182,16 +185,13 @@ def start_streaming():
 
     for _ in range(mix.track_count):
         track = next_track(play_token, mix.ident)
-
-        print("playing!")
         # TODO: Following commented lines are for reporting performance.
         #       Reenable as needed.
 
         #timer = Timer(
             #30, report_performance, args=[play_token, mix.ident, track_id])
         #timer.start()
-        play_stream(track.url)
-
+        play_stream(track)
 
 def verify_user():
     '''

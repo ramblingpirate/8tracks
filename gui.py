@@ -7,7 +7,8 @@ import search_by_tag as sbt
 
 class pirateTracks(Gtk.Window):
     def __init__(self):
-        Gtk.Window.__init__(self, title="pirateTracks")
+        Gtk.Window.__init__(self)
+        self.set_title("pirateTracks")
         self.set_name('pirateTracks')
         self.set_default_size(500,500)
         self.icon_pix = GdkPixbuf.Pixbuf.new_from_file("pirateTracks.jpg")
@@ -28,10 +29,11 @@ class pirateTracks(Gtk.Window):
         self.create_widgets()
         self.connect("delete-event", Gtk.main_quit)
         self.show_all()
-        Gtk.main()
         
-    def load_image():
-        pass
+        # Grab a play token, son!
+        self.token = pirate.get_play_token()
+        
+        Gtk.main()
         
     def create_widgets(self):
         # *****
@@ -59,9 +61,12 @@ class pirateTracks(Gtk.Window):
         self.play_button_image = Gtk.Image()
         self.pause_button_image = Gtk.Image()
         self.skip_button_image = Gtk.Image()
-        self.play_button_image.set_from_stock(Gtk.STOCK_MEDIA_PLAY, Gtk.IconSize.BUTTON)
-        self.pause_button_image.set_from_stock(Gtk.STOCK_MEDIA_PAUSE, Gtk.IconSize.BUTTON)
-        self.skip_button_image.set_from_stock(Gtk.STOCK_MEDIA_NEXT, Gtk.IconSize.BUTTON)
+        self.play_button_image.set_from_stock(Gtk.STOCK_MEDIA_PLAY,
+        Gtk.IconSize.BUTTON)
+        self.pause_button_image.set_from_stock(Gtk.STOCK_MEDIA_PAUSE,
+        Gtk.IconSize.BUTTON)
+        self.skip_button_image.set_from_stock(Gtk.STOCK_MEDIA_NEXT,
+        Gtk.IconSize.BUTTON)
         self.play_button = Gtk.Button()
         self.skip_button = Gtk.Button()
         self.play_button.connect("clicked", self.on_play_clicked)
@@ -122,7 +127,8 @@ class pirateTracks(Gtk.Window):
         self.mix_review_text.set_wrap_mode(Gtk.WrapMode.WORD)
         self.mix_review_sw = Gtk.ScrolledWindow()
         self.mix_review_sw.set_border_width(0)
-        self.mix_review_sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.mix_review_sw.set_policy(Gtk.PolicyType.AUTOMATIC,
+        Gtk.PolicyType.AUTOMATIC)
         self.mix_review_sw.set_min_content_height(450)
         self.mix_review_sw.add(self.mix_review_text)
         self.vbox_center.pack_start(self.mix_review_sw, False, False, 0)
@@ -131,7 +137,6 @@ class pirateTracks(Gtk.Window):
         self.submit_button = Gtk.Button(label="Review!")
         self.submit_button.connect("clicked", self.on_review_click)
         self.entry_submit = Gtk.Entry()
-        #self.entry_submit.set_text("Enter your review here. Remember, they are people too.")
         self.hbox_submit.pack_start(self.submit_button, False, False, 0)
         self.hbox_submit.pack_start(self.entry_submit, True, True, 0)
         
@@ -140,11 +145,11 @@ class pirateTracks(Gtk.Window):
         self.mix_tree_sw.set_border_width(0)
         self.mix_tree_sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.mix_tree_sw.set_min_content_height(450)
-        #self.mix_tree_sw.set_max_content_width(100)
         self.mix_tree_view = Gtk.TreeView()
         self.mix_tree_view.set_model(model=self.create_mix_list_model())
         self.create_column(self.mix_tree_view)
-        self.mix_tree_view.get_selection().connect("changed", self.on_results_activated)
+        self.selection = self.mix_tree_view.get_selection()
+        self.selection.connect("changed", self.on_results_activated)
         self.mix_tree_sw.add(self.mix_tree_view)
         self.vbox_right.pack_start(self.mix_tree_sw, True, True, 0)
         
@@ -165,6 +170,8 @@ class pirateTracks(Gtk.Window):
         # Calls play_stream from pirateTracks, changes button image to "Pause"
         # Not actually adding the play_stream yet, because of reasons.
         print("Now simulating the playing of the songs and the stuff.")
+        (model, iter) = self.selection.get_selected()
+        pirate.start_streaming(self.token, model[iter][2])
         # Here is where we would switch the button image to "Pause"
         # not sure how to implement yet.
         
@@ -206,7 +213,8 @@ class pirateTracks(Gtk.Window):
         self.mix_tree_view.append_column(self.column_descr)
         
     def on_results_activated(self, selection):
-        # Here, we want to set the cover photo (or maybe I'll add another area for not-currently-playing
+        # Here, we want to set the cover photo (or maybe I'll add another area for
+        # not-currently-playing
         # mix covers and such. I'm not sure yet) to the selected cover.
         (model, treeiter) = selection.get_selected()
         url = sbt.get_mix_cover(model[treeiter][2])
@@ -220,7 +228,8 @@ class pirateTracks(Gtk.Window):
         review_string = ''
         #print buffer
         for id, (review_body, created_at, user_id) in buffer.items():
-            review_string = review_string + '=====\n{} :: {}\n====='.format(sbt.get_user_info(buffer[id].user_id), buffer[id].review_body.encode('utf-8'))
+            review_string = review_string + '=====\n{} :: {}\n====='.format(
+            sbt.get_user_info(buffer[id].user_id), buffer[id].review_body.encode('utf-8'))
             
         review_tbuffer.set_text(review_string)
         self.mix_review_text.set_buffer(review_tbuffer)
