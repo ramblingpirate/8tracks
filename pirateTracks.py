@@ -100,32 +100,6 @@ def report_performance(play_token, mix_id, track_id):
     request_url = BASE_URL + 'sets/{}/report.?track_id={}&mix_id={}&api_key={}'
     requests.get(request_url.format(play_token, track_id, mix_id, API))
 
-#def play_stream(track):
-#    '''
-#    Updated implementation! WOO! play_stream now uses gstreamer as its
-#    player. Cross-Platform ready!
-#    '''
-#    #import ipdb; ipdb.set_trace()
-#    def message_handler(bus, message):
-#        if message.type == Gst.MessageType.EOS:
-#            print "eos"
-#            player.set_state(Gst.State.NULL)
-#            queue.get()
-#            queue.task_done()
-#        elif message.type == Gst.MessageType.ERROR:
-#            err, debug = message.parse_error()
-#            print "Error: {}, {}".format(err, debug)
-#    #import ipdb; ipdb.set_trace()
-#    # Bus
-#    bus = player.get_bus()
-#    bus.add_signal_watch()
-#    bus.enable_sync_message_emission()
-#    bus.connect('message', message_handler)
-#
-#    # Set props.
-#    player.set_property('uri', track.url)
-#    player.set_state(Gst.State.PLAYING)
-
 def next_track(play_token, mix_id):
     '''
     This will get the next URL for playing. First, let's check and make
