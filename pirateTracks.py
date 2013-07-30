@@ -4,12 +4,11 @@ import json
 from collections import namedtuple
 
 import requests
-from gi.repository import GObject, Gtk, Gst
-from gi import require_version
-require_version('Gst', '1.0')
+from gi.repository import GObject, Gtk
 
 from getpass import getpass as gp
-
+import gstreamer_player
+gplayer = gstreamer_player.Player()
 
 BASE_URL = 'http://8tracks.com/'
 API = 'd9a4ca3f43e70029e3619fdc7869d1cd608141e0.'
@@ -17,15 +16,6 @@ API = 'd9a4ca3f43e70029e3619fdc7869d1cd608141e0.'
 Mix = namedtuple('Mix', ['ident', 'name', 'track_count'])
 Track = namedtuple('Track', ['artist', 'title', 'url'])
 
-Gst.init(None)
-# Pipeline
-pipeline = Gst.Pipeline()
-
-# Create Elements.
-sink = Gst.ElementFactory.make("playbin", None)
-
-# Add to pipe
-pipeline.add(sink)
 
 
 class ApiMisuseError(Exception):
@@ -61,8 +51,8 @@ def gather_mixes(print_mixes=False):
             [x[u'name'] for x in mixes_parsed[u'mixes']],
             [x[u'tracks_count'] for x in mixes_parsed[u'mixes']]):
         mixes[ident] = Mix(ident, name, track_count)
-        if print_mixes:
-            print("ID: {} :: Name: {}".format(ident, name.encode('utf-8')))
+#        if print_mixes:
+#            print("ID: {} :: Name: {}".format(ident, name.encode('utf-8')))
 
     return mixes
 
@@ -73,10 +63,13 @@ def mix_selection(response):
     Allows user to select the mix.
     Returns id, noTracks to invoking function.
     '''
-    mixes = gather_mixes(print_mixes=True)
+    try:
+        mixes = gather_mixes(print_mixes=True)
     # TODO: Swap response to use user input
     #response = raw_input('Which mix do you want to listen to?: ')
-    return mixes[response]
+        return mixes[response]
+    except AttributeError:
+        return response
 
 
 def get_play_token():
@@ -107,31 +100,32 @@ def report_performance(play_token, mix_id, track_id):
     request_url = BASE_URL + 'sets/{}/report.?track_id={}&mix_id={}&api_key={}'
     requests.get(request_url.format(play_token, track_id, mix_id, API))
 
+#def play_stream(track):
+#    '''
+#    Updated implementation! WOO! play_stream now uses gstreamer as its
+#    player. Cross-Platform ready!
+#    '''
+#    #import ipdb; ipdb.set_trace()
+#    def message_handler(bus, message):
+#        if message.type == Gst.MessageType.EOS:
+#            print "eos"
+#            player.set_state(Gst.State.NULL)
+#            queue.get()
+#            queue.task_done()
+#        elif message.type == Gst.MessageType.ERROR:
+#            err, debug = message.parse_error()
+#            print "Error: {}, {}".format(err, debug)
+#    #import ipdb; ipdb.set_trace()
+#    # Bus
+#    bus = player.get_bus()
+#    bus.add_signal_watch()
+#    bus.enable_sync_message_emission()
+#    bus.connect('message', message_handler)
+#
+#    # Set props.
+#    player.set_property('uri', track.url)
+#    player.set_state(Gst.State.PLAYING)
 
-def play_stream(track):
-    '''
-    Updated implementation! WOO! play_stream now uses gstreamer as its
-    player. Cross-Platform ready!
-    '''
-    def callback(bus, message):
-        t = message.type
-        if t == Gst.MessageType.EOS:
-            sink.set_state(Gst.State.READY)
-        elif t == Gst.MessageType.ERROR:
-            err, debug = message.parse_error()
-            print "Error: {}, {}".format(err, debug)
-    
-    # Bus
-    bus = pipeline.get_bus()
-    bus.add_signal_watch()
-    bus.connect('message', callback)
-    bus.enable_sync_message_emission()
-    
-    # Set props.
-    sink.set_property('uri', track.url)
-    sink.set_state(Gst.State.PLAYING)
-    print_metadata(track)
-    
 def next_track(play_token, mix_id):
     '''
     This will get the next URL for playing. First, let's check and make
@@ -191,7 +185,10 @@ def start_streaming(play_token, mix):
         #timer = Timer(
             #30, report_performance, args=[play_token, mix.ident, track_id])
         #timer.start()
-        play_stream(track)
+        
+        gplayer.queue_q(track)
+        
+    gplayer.play()
 
 def verify_user():
     '''

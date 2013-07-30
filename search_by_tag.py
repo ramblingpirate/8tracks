@@ -13,16 +13,16 @@ def search_by_tag(tag):
     Searches for mixes using tags.
     '''
     #search = raw_input('Enter a tag: ')
+    Mix = namedtuple('Mix', ['ident', 'name', 'track_count'])
+    tag = tag.replace(" ", "%2B")
     searchRE = requests.get(URL + 'mixes.json?tag={}&api_version=2&api_key={}'.format(tag, API))
     searchJSON = json.loads(searchRE.content)
     #pprint(searchJSON)
     mixes = {}
-    for ident, name, noTracks, desc, imgurl in zip([x[u'id'] for x in searchJSON[u'mixes']],[x[u'name'] for x in searchJSON[u'mixes']],
-        [x[u'tracks_count'] for x in searchJSON[u'mixes']], [x[u'description'] for x in searchJSON[u'mixes']],
-        [x[u'cover_urls'][u'original'] for x in searchJSON[u'mixes']]):
+    for ident, name, noTracks in zip([x[u'id'] for x in searchJSON[u'mixes']],[x[u'name'] for x in searchJSON[u'mixes']],
+        [x[u'tracks_count'] for x in searchJSON[u'mixes']]):
         #print('*****\nid: {}\nName: {}\nTrack Count: {}\n*****'.format(ident, name.encode('utf-8'), noTracks))
-        mixes.update({ident:(name, desc, imgurl)})
-        
+        mixes[ident] = Mix(ident, name, noTracks)
     return mixes
 
 def search_by_artist():
@@ -70,5 +70,4 @@ def get_user_info(user_id):
 def get_mix_cover(mixID):
     coverRE = requests.get(URL + '/mixes/{}.json?api_key={}'.format(mixID, API))
     cover_JSON = json.loads(coverRE.content)
-    
-    return cover_JSON[u'mix'][u'cover_urls'][u'max200']
+    return cover_JSON[u'mix'][u'cover_urls'][u'original']

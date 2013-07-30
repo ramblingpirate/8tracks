@@ -1,7 +1,6 @@
 import urllib
 
-from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
-
+from gi.repository import Gtk, Gdk, GdkPixbuf
 import pirateTracks as pirate
 import search_by_tag as sbt
 
@@ -11,20 +10,20 @@ class pirateTracks(Gtk.Window):
         self.set_title("pirateTracks")
         self.set_name('pirateTracks')
         self.set_default_size(500,500)
-        self.icon_pix = GdkPixbuf.Pixbuf.new_from_file("pirateTracks.jpg")
+        self.icon_pix = GdkPixbuf.Pixbuf.new_from_file('pirateTracks.jpg')
         self.set_icon(self.icon_pix)
         
-        self.style_provider = Gtk.CssProvider()
+        #self.style_provider = Gtk.CssProvider()
         
-        css = open(('style.css'), 'rb')
-        css_data = css.read()
-        css.close()
-        self.style_provider.load_from_data(css_data)
-        Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(),
-            self.style_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
+#        css = open(('style.css'), 'rb')
+#        css_data = css.read()
+#        css.close()
+#        self.style_provider.load_from_data(css_data)
+#        Gtk.StyleContext.add_provider_for_screen(
+#            Gdk.Screen.get_default(),
+#            self.style_provider,
+#            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+#        )
         
         self.create_widgets()
         self.connect("delete-event", Gtk.main_quit)
@@ -73,9 +72,15 @@ class pirateTracks(Gtk.Window):
         self.skip_button.connect("clicked", self.on_skip_clicked)
         self.play_button.set_image(self.play_button_image)
         self.skip_button.set_image(self.skip_button_image)
+        self.search_box = Gtk.Entry()
+        self.search_button = Gtk.Button("Search")
+        self.search_button.connect("clicked", self.on_search_clicked)
+        
         self.hbox_playpause.pack_start(self.cover_photo, False, False, 0)
         self.playpause_buttonbox.pack_start(self.play_button, False, False, 0)
         self.playpause_buttonbox.pack_start(self.skip_button, False, False, 0)
+        self.playpause_buttonbox.pack_start(self.search_button, False, False, 0)
+        self.playpause_buttonbox.pack_start(self.search_box, False, False, 0)
         self.hbox_playpause.pack_start(self.playpause_buttonbox, False, False, 0)
         self.playpause_sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         self.vbox_overall.pack_start(self.hbox_playpause, False, False, 0)
@@ -146,7 +151,7 @@ class pirateTracks(Gtk.Window):
         self.mix_tree_sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.mix_tree_sw.set_min_content_height(450)
         self.mix_tree_view = Gtk.TreeView()
-        self.mix_tree_view.set_model(model=self.create_mix_list_model())
+        self.mix_tree_view.set_model(model=self.create_mix_list_model(pirate.gather_mixes()))
         self.create_column(self.mix_tree_view)
         self.selection = self.mix_tree_view.get_selection()
         self.selection.connect("changed", self.on_results_activated)
@@ -166,6 +171,12 @@ class pirateTracks(Gtk.Window):
     # 5. "Now Playing" by "Artist" label listening for new song.
     # ********************************************************************************
     
+    def on_search_clicked(self, widget):
+        results = sbt.search_by_tag(self.search_box.get_text())
+        self.mix_tree_view.set_model(model=self.create_mix_list_model(sbt.search_by_tag(self.search_box.get_text())))
+        
+        
+        
     def on_play_clicked(self, widget):
         # Calls play_stream from pirateTracks, changes button image to "Pause"
         # Not actually adding the play_stream yet, because of reasons.
@@ -185,7 +196,7 @@ class pirateTracks(Gtk.Window):
         
     def on_liked_clicked(self, widget):
         from user_context import list_liked_mixes
-        list_liked_mixes()
+        list_liked_mixes("ramblingpirate")
         
     def on_review_click(self, widget):
         # *****
@@ -194,10 +205,10 @@ class pirateTracks(Gtk.Window):
         from user_context import post_review as pr
         pr(body=self.entry_submit.get_text())
         
-    def create_mix_list_model(self):
+    def create_mix_list_model(self, results):
         # Create model
         self.feed_model = Gtk.ListStore(str, int, int)
-        self.mixes = pirate.gather_mixes()
+        self.mixes = results
         for id, name in self.mixes.iteritems():
             self.feed_model.append((name[1], name[2], name[0]))
         return self.feed_model
@@ -217,11 +228,14 @@ class pirateTracks(Gtk.Window):
         # not-currently-playing
         # mix covers and such. I'm not sure yet) to the selected cover.
         (model, treeiter) = selection.get_selected()
-        url = sbt.get_mix_cover(model[treeiter][2])
-        self.get_cover_as_file(url)
+        try:
+            url = sbt.get_mix_cover(model[treeiter][2])
+            self.get_cover_as_file(url)
         
-        # Here, we'll call the show_reviews function to display reviews and such.
-        self.show_the_critics(sbt.get_mix_reviews(model[treeiter][2]))
+            # Here, we'll call the show_reviews function to display reviews and such.
+            self.show_the_critics(sbt.get_mix_reviews(model[treeiter][2]))
+        except AttributeError:
+            pass
         
     def show_the_critics(self, buffer):
         review_tbuffer = Gtk.TextBuffer()
@@ -239,6 +253,7 @@ class pirateTracks(Gtk.Window):
         loader.write(urllib.urlopen(parse_url).read())
         loader.close()
         pixbuf = loader.get_pixbuf()
+        pixbuf.scale_simple(500, 20, GdkPixbuf.InterpType.BILINEAR)
         self.cover_photo.set_from_pixbuf(pixbuf)
         
 if __name__ == '__main__':

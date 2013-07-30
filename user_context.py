@@ -1,6 +1,5 @@
 import requests, json
-#import pirateTracks
-#from getpass import getpass as gp
+from pprint import pprint
 
 secureURL = 'https://8tracks.com/'
 URL = 'http://8tracks.com/'
@@ -47,7 +46,8 @@ def tracks_played(playToken, mixID):
     tracksPlayed = requests.get(URL + 'sets/{}/tracks_played.json?mix_id={}&api_version=2&api_key={}'.format(playToken, mixID, API))
     tracksJSON = json.loads(tracksPlayed.content)
     print('Listening History:\n')
-    for name, performer in zip([x[u'name'] for x in tracksJSON[u'tracks']],[x[u'performer'] for x in tracksJSON[u'tracks']]):
+    for name, performer in zip([x[u'name'] for x in tracksJSON[u'tracks']],
+    [x[u'performer'] for x in tracksJSON[u'tracks']]):
         print('*****\n"{}" by {}\n*****'.format(name.encode('utf-8'), performer))
     print('\n')
     
@@ -118,8 +118,12 @@ def list_favorites():
     # *****
     print("Oh you know, that one you like.")
 
-def list_liked_mixes():
+def list_liked_mixes(user):
     # *****
     # This needs to list all liked mixes for logged in user.
     # *****
-    print("Oh you know, that one you like.")
+    likedResponse = requests.get(URL + 'users/{}/mixes.json?view=liked&api_key={}'.format(user, API))
+    likedJSON = json.loads(likedResponse.content)
+    
+    for mix, desc in zip([x[u'name'] for x in likedJSON[u'mixes']], [x[u'description'] for x in likedJSON[u'mixes']]):
+        print "Name: {}\nDescription: {}".format(mix.encode('utf-8'), desc)
